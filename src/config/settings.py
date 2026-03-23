@@ -25,7 +25,6 @@ class PostgreSQLConfig(BaseSettings):
     user: str = Field(..., description="PostgreSQL database user")
     password: str = Field(..., description="PostgreSQL database password")
     ssl_mode: str = Field(default="prefer", description="PostgreSQL SSL mode")
-    schema: str = Field(default="public", description="PostgreSQL schema name")
 
     def get_postgres_connection_string(self, async_driver: bool = False) -> str:
         """
