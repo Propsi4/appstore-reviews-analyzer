@@ -1,6 +1,7 @@
 """API response models."""
 
 # Standart library imports
+from datetime import datetime
 from typing import Dict, List
 
 # Thirdparty imports
@@ -48,7 +49,7 @@ class ReviewResponse(BaseModel):
     rating: int = Field(..., description="Review rating")
     title: str | None = Field(None, description="Review title")
     content: str | None = Field(None, description="Review content")
-    created_at: str | None = Field(None, description="Review timestamp")
+    created_at: datetime | None = Field(None, description="Review timestamp")
 
     processed_review: ProcessedReviewResponse | None = Field(None, description="Processed analysis for the review")
 
@@ -59,7 +60,7 @@ class ReviewListResponse(BaseModel):
     """Paginated list of reviews."""
 
     app_id: str = Field(..., description="App Store ID")
-    country: str = Field(..., description="Country code")
+    country: str | None = Field(None, description="Country code")
     page: int = Field(..., description="Current page number")
     limit: int = Field(..., description="Number of reviews per page")
     count: int = Field(..., description="Number of reviews returned in current response")
@@ -79,7 +80,7 @@ class AppMetricsResponse(BaseModel):
     actionable_recommendations: List[str] = Field(
         ..., description="Specific, prioritized recommendations for developers"
     )
-    last_processed_at: str = Field(..., description="Timestamp of when these insights were last generated")
+    last_processed_at: datetime = Field(..., description="Timestamp of when these insights were last generated")
 
 
 class ReviewDownloadResponse(BaseModel):
@@ -91,4 +92,4 @@ class ReviewDownloadResponse(BaseModel):
     title: str = Field(..., description="Review title")
     content: str = Field(..., description="Full text content of the review")
     version: str = Field(..., description="App version when the review was written")
-    created_at: str = Field(..., description="Review creation timestamp")
+    created_at: datetime = Field(..., description="Review creation timestamp")

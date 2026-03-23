@@ -1,7 +1,7 @@
 """FastAPI routers for app reviews."""
 
 # Standart library imports
-from typing import List, Union
+from typing import List, Optional, Union
 
 # Thirdparty imports
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
@@ -57,10 +57,20 @@ def get_app_pages(app_id: str, country: str = "us"):
 
 
 @router.get("/list/{app_id}", response_model=ReviewListResponse)
-def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 50, db: Session = Depends(get_db)):
+def list_reviews(
+    app_id: str,
+    page: int = 1,
+    limit: int = 50,
+    country: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
     """Fetch reviews for a specific app and country (paginated)."""
     try:
-        app = db.query(App).filter(App.external_id == app_id).first()
+        query = db.query(App).filter(App.external_id == app_id)
+        if country:
+            query = query.filter(App.country == country)
+
+        app = query.first()
         if not app:
             raise HTTPException(status_code=404, detail="App not found.")
 
@@ -75,7 +85,7 @@ def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 5
 
         return {
             "app_id": app_id,
-            "country": country,
+            "country": app.country,
             "page": page,
             "limit": limit,
             "count": len(reviews),
@@ -133,7 +143,7 @@ def download_reviews(app_id: str, db: Session = Depends(get_db)):
             title=r.title,
             content=r.content,
             version=r.version,
-            created_at=str(r.created_at),
+            created_at=r.created_at,
         )
         for r in reviews
     ]
