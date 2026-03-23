@@ -32,6 +32,9 @@ RUN poetry config virtualenvs.create false \
 # Download NLTK data
 RUN python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('punkt_tab')"
 
+# Download sentiment analysis model
+RUN python -c "from transformers import pipeline; pipeline('sentiment-analysis', model='cardiffnlp/twitter-xlm-roberta-base-sentiment')"
+
 # Copy project (this will NOT copy .env because of .dockerignore)
 COPY . /app/
 
