@@ -13,12 +13,13 @@ from nltk.corpus import stopwords
 from nltk.data import find as nltk_find
 from nltk.tokenize import word_tokenize
 from pydantic import BaseModel, Field, PrivateAttr
-from transformers import T5ForConditionalGeneration, T5Tokenizer, pipeline
+from transformers import pipeline
 
 # Local imports
 from src.config.settings import settings
 from src.prompts.insights import SYSTEM_PROMPT as INSIGHTS_PROMPT
-from src.schemas.nlp import AppInsightsResponse
+from src.prompts.keywords import SYSTEM_PROMPT as KEYWORDS_PROMPT
+from src.schemas.nlp import AppInsightsResponse, KeywordsResponse
 
 
 class NLPService(BaseModel):
@@ -28,8 +29,6 @@ class NLPService(BaseModel):
     gemini_model_name: str = Field(default=settings.gemini.model)
 
     _sentiment_pipe: pipeline = PrivateAttr(default=None)
-    _keyword_model: T5ForConditionalGeneration = PrivateAttr(default=None)
-    _keyword_tokenizer: T5Tokenizer = PrivateAttr(default=None)
     _client: genai.Client = PrivateAttr(default=None)
 
     def model_post_init(self, __context):
@@ -52,9 +51,6 @@ class NLPService(BaseModel):
                 nltk.download("stopwords")
                 nltk.download("punkt")
                 nltk.download("punkt_tab")
-
-            self._keyword_model = T5ForConditionalGeneration.from_pretrained("Voicelab/vlt5-base-keywords")
-            self._keyword_tokenizer = T5Tokenizer.from_pretrained("Voicelab/vlt5-base-keywords")
 
             logger.info(f"Initializing Gemini model: {self.gemini_model_name}")
             self._client = genai.Client(api_key=settings.gemini.api_key)
@@ -113,7 +109,7 @@ class NLPService(BaseModel):
 
     def extract_keywords(self, texts: List[str], top_n: int = 10) -> List[str]:
         """
-        Extract top keywords from a list of texts.
+        Extract top keywords from a list of texts using Gemini.
 
         Args:
             texts: List of strings (e.g., negative reviews).
@@ -126,19 +122,25 @@ class NLPService(BaseModel):
             return []
 
         try:
-            cleaned_texts = [self._preprocess_text(t) for t in texts]
-            combined_text = " ".join([t for t in cleaned_texts if t])
+            logger.info("Extracting keywords via Gemini (Structured Output)...")
 
-            if not combined_text:
-                return []
+            # Combine reviews for context (limit to avoid token overflow)
+            reviews_context = "\n".join([f"- {r}" for r in texts[:50]])
 
-            input_sequences = ["Keywords: " + combined_text]
-            input_ids = self._keyword_tokenizer(input_sequences, return_tensors="pt").input_ids
-            output = self._keyword_model.generate(input_ids, no_repeat_ngram_size=1, num_beams=2)
-            predicted = self._keyword_tokenizer.decode(output[0], skip_special_tokens=True)
-            return predicted.split(",")[:top_n]
+            prompt = KEYWORDS_PROMPT.format(top_n=top_n, reviews_context=reviews_context)
+
+            response = self._client.models.generate_content(
+                model=self.gemini_model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=KeywordsResponse,
+                ),
+            )
+
+            return KeywordsResponse.model_validate_json(response.text).keywords
         except Exception as e:
-            logger.error(f"Keyword extraction failed: {e}")
+            logger.error(f"Gemini keyword extraction failed: {e}")
             return []
 
     def generate_insights(self, negative_reviews: List[str], keywords: List[str]) -> AppInsightsResponse:

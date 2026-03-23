@@ -14,3 +14,9 @@ class AppInsightsResponse(BaseModel):
     recommendations: List[str] = Field(
         ..., description="List of specific, actionable recommendations for the developer."
     )
+
+
+class KeywordsResponse(BaseModel):
+    """Structured response for extracted keywords from Gemini."""
+
+    keywords: List[str] = Field(..., description="List of the most relevant keywords extracted from the reviews.")

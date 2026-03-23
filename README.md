@@ -17,7 +17,7 @@ A professional-grade FastAPI application designed to scrape, analyze, and provid
 - **Framework**: FastAPI
 - **Database**: PostgreSQL (SQLAlchemy + Alembic)
 - **Scraping (RSS)**: httpx
-- **NLP**: Transformers (RoBERTa + T5)
+- **NLP**: Transformers (RoBERTa)
 - **LLM**: Google GenAI (Gemini)
 - **Environment**: Poetry, Docker
 

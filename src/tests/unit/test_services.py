@@ -141,9 +141,30 @@ def test_nlp_service_generate_insights_error():
 
 
 def test_nlp_service_empty_inputs():
-    """Test insight generation with empty inputs."""
+    """Test insight generation and keyword extraction with empty inputs."""
     service = NLPService()
     assert service.extract_keywords([]) == []
     res = service.generate_insights([], [])
     assert res.insights == "No negative feedback to analyze."
     assert res.recommendations == ["N/A"]
+
+
+def test_nlp_service_extract_keywords_success():
+    """Test successful keyword extraction with Gemini."""
+    service = NLPService()
+    with patch.object(service, "_client") as mock_client:
+        mock_response = MagicMock()
+        mock_response.text = '{"keywords": ["bug", "crash", "ui"]}'
+        mock_client.models.generate_content.return_value = mock_response
+
+        res = service.extract_keywords(["The app crashes", "UI is bad"])
+        assert res == ["bug", "crash", "ui"]
+
+
+def test_nlp_service_extract_keywords_error():
+    """Test keyword extraction error handling."""
+    service = NLPService()
+    with patch.object(service, "_client") as mock_client:
+        mock_client.models.generate_content.side_effect = Exception("Gemini error")
+        res = service.extract_keywords(["text"])
+        assert res == []
