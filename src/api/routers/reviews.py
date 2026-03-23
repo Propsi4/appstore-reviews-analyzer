@@ -5,6 +5,7 @@ from typing import List
 
 # Thirdparty imports
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 # Local imports
@@ -73,7 +74,7 @@ def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 5
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/metrics/{app_id}", response_model=AppMetricsResponse)
+@router.get("/metrics/{app_id}", response_model=AppMetricsResponse | JSONResponse | HTTPException)
 def get_metrics(app_id: str, db: Session = Depends(get_db)):
     """Get aggregated metrics and insights for a specific app."""
     app = db.query(App).filter(App.external_id == app_id).first()
@@ -99,7 +100,7 @@ def get_metrics(app_id: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/download/{app_id}", response_model=List[ReviewDownloadResponse])
+@router.get("/download/{app_id}", response_model=List[ReviewDownloadResponse] | HTTPException)
 def download_reviews(app_id: str, db: Session = Depends(get_db)):
     """Provide raw review data for download."""
     app = db.query(App).filter(App.external_id == app_id).first()
