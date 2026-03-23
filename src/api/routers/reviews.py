@@ -1,12 +1,11 @@
 """FastAPI routers for app reviews."""
 
 # Standart library imports
-from typing import List
+from typing import List, Union
 
 # Thirdparty imports
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 # Local imports
 from src.api.schemas import (
@@ -52,16 +51,28 @@ def get_app_pages(app_id: str, country: str = "us"):
     """Get the total number of pages available for an app."""
     try:
         num_pages = service.get_num_pages(app_id, country)
-        return {"app_id": app_id, "country": country, "num_pages": num_pages}
+        return AppPagesResponse(app_id=app_id, country=country, num_pages=num_pages)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/list/{app_id}", response_model=ReviewListResponse)
-def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 50):
+def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 50, db: Session = Depends(get_db)):
     """Fetch reviews for a specific app and country (paginated)."""
     try:
-        reviews = service.get_reviews(app_id, country, limit=limit, page=page)
+        app = db.query(App).filter(App.external_id == app_id).first()
+        if not app:
+            raise HTTPException(status_code=404, detail="App not found.")
+
+        reviews = (
+            db.query(Review)
+            .options(joinedload(Review.processed_review))
+            .filter(Review.app_id == app.id)
+            .offset((page - 1) * limit)
+            .limit(limit)
+            .all()
+        )
+
         return {
             "app_id": app_id,
             "country": country,
@@ -74,12 +85,16 @@ def list_reviews(app_id: str, country: str = "us", page: int = 1, limit: int = 5
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/metrics/{app_id}", response_model=AppMetricsResponse | JSONResponse | HTTPException)
+@router.get("/metrics/{app_id}", response_model=Union[AppMetricsResponse, dict])
 def get_metrics(app_id: str, db: Session = Depends(get_db)):
     """Get aggregated metrics and insights for a specific app."""
     app = db.query(App).filter(App.external_id == app_id).first()
     if not app:
-        raise HTTPException(status_code=404, detail="App not found. Please trigger collection first.")
+        return {
+            "app_id": app_id,
+            "status": "processing",
+            "message": "App is being registered and insights are being generated.",
+        }
 
     insight = db.query(AppInsight).filter(AppInsight.app_id == app.id).first()
     if not insight:
@@ -100,7 +115,7 @@ def get_metrics(app_id: str, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/download/{app_id}", response_model=List[ReviewDownloadResponse] | HTTPException)
+@router.get("/download/{app_id}", response_model=List[ReviewDownloadResponse])
 def download_reviews(app_id: str, db: Session = Depends(get_db)):
     """Provide raw review data for download."""
     app = db.query(App).filter(App.external_id == app_id).first()
@@ -111,14 +126,14 @@ def download_reviews(app_id: str, db: Session = Depends(get_db)):
 
     # Format reviews for JSON download
     return [
-        {
-            "id": r.external_id,
-            "author": r.author,
-            "rating": r.rating,
-            "title": r.title,
-            "content": r.content,
-            "version": r.version,
-            "created_at": str(r.created_at),
-        }
+        ReviewDownloadResponse(
+            id=r.external_id,
+            author=r.author,
+            rating=r.rating,
+            title=r.title,
+            content=r.content,
+            version=r.version,
+            created_at=str(r.created_at),
+        )
         for r in reviews
     ]

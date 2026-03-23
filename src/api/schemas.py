@@ -6,9 +6,6 @@ from typing import Dict, List
 # Thirdparty imports
 from pydantic import BaseModel, Field
 
-# Local imports
-from src.schemas.app_reviews import Review
-
 
 class BaseResponse(BaseModel):
     """Common response structure."""
@@ -33,6 +30,31 @@ class AppPagesResponse(BaseModel):
     num_pages: int = Field(..., description="Total number of pages available in RSS feed")
 
 
+class ProcessedReviewResponse(BaseModel):
+    """Processed review schema."""
+
+    sentiment_label: str | None = Field(None, description="Sentiment label (e.g., positive, negative, neutral)")
+    sentiment_score: float | None = Field(None, description="Sentiment score")
+
+    model_config = {"from_attributes": True}
+
+
+class ReviewResponse(BaseModel):
+    """Review schema for API responses."""
+
+    id: str = Field(..., validation_alias="external_id", description="External review ID")
+    author: str | None = Field(None, description="Author name")
+    version: str | None = Field(None, description="App version")
+    rating: int = Field(..., description="Review rating")
+    title: str | None = Field(None, description="Review title")
+    content: str | None = Field(None, description="Review content")
+    created_at: str | None = Field(None, description="Review timestamp")
+
+    processed_review: ProcessedReviewResponse | None = Field(None, description="Processed analysis for the review")
+
+    model_config = {"from_attributes": True, "populate_by_name": True}
+
+
 class ReviewListResponse(BaseModel):
     """Paginated list of reviews."""
 
@@ -41,7 +63,7 @@ class ReviewListResponse(BaseModel):
     page: int = Field(..., description="Current page number")
     limit: int = Field(..., description="Number of reviews per page")
     count: int = Field(..., description="Number of reviews returned in current response")
-    reviews: List[Review] = Field(..., description="List of reviews")
+    reviews: List[ReviewResponse] = Field(..., description="List of reviews with their processed analysis")
 
 
 class AppMetricsResponse(BaseModel):
