@@ -1,0 +1,75 @@
+[tool.black]
+line-length = 120
+skip-string-normalization = true
+
+[tool.isort]
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+line_length = 120
+
+known_pandas = "pandas,numpy"
+sections = "FUTURE,STDLIB,THIRDPARTY,PANDAS,FIRSTPARTY,LOCALFOLDER"
+
+import_heading_stdlib = "Standart library imports"
+import_heading_thirdparty = "Thirdparty imports"
+import_heading_firstparty = "Local imports"
+import_heading_localfolder = "Local folder imports"
+
+[tool.poetry]
+name = "appstore-reviews-analyzer"
+readme = "README.md"
+version = "1.0.0"
+description = "Appstore Reviews Analyzer"
+authors = [
+    "Vadym Burylo <gaenday12@gmail.com>",
+]
+packages = [
+    { include = "src" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.11.11,<3.12"
+python-dotenv = "^1.2.1"
+pydantic-settings = "^2.13.1"
+loguru = "^0.7.3"
+httpx = "^0.28.1"
+sqlalchemy = "^2.0.48"
+psycopg2-binary = "^2.9.11"
+alembic = "^1.18.4"
+fastapi = "^0.135.1"
+uvicorn = "^0.42.0"
+transformers = "^5.3.0"
+torch = { version = "^2.10.0", source = "pytorch-cpu" }
+pandas = "^3.0.1"
+google-genai = "^1.0.0"
+tiktoken = "^0.12.0"
+sentencepiece = "^0.2.1"
+protobuf = "^7.34.1"
+nltk = "^3.9.3"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.9.0"
+flake8 = "^7.1.1"
+flake8-docstrings = "^1.7.0"
+mypy = "^1.13.0"
+poetry = "^2.1.3"
+pre-commit = "^4.5.1"
+ipykernel = "^7.2.0"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.3.0"
+pytest-cov = "^7.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+[tool.poetry.scripts]
+api = "src.api.main:main"
