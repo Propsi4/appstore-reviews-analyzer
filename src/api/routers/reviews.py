@@ -43,7 +43,9 @@ def collect_reviews(app_id: str, background_tasks: BackgroundTasks, country: str
         raise HTTPException(status_code=400, detail="App already exists.")
     try:
         review_service = AppReviewsService()
-        review_service.get_app_name(app_id, country)
+        app_name = review_service.get_app_name(app_id, country)
+        if app_name == "Unknown":
+            raise ValueError(f"App not found for app_id={app_id}, country={country}")
     except ValueError:
         raise HTTPException(status_code=400, detail="App not found. Please check the app ID and country.")
 
