@@ -17,12 +17,22 @@ from src.api.schemas import (
     ReviewListResponse,
 )
 from src.db.models import App, AppInsight, Review
-from src.db.session import get_db
+from src.db.session import SessionLocal, get_db
 from src.jobs.review_analysis import ReviewAnalysisJob
 from src.services.app_reviews import AppReviewsService
 
 router = APIRouter(prefix="/reviews", tags=["reviews"])
 service = AppReviewsService()
+
+
+def run_review_analysis_job_wrapper(app_id: str, country: str):
+    """Run review analysis in a background task with its own DB session."""
+    db = SessionLocal()
+    try:
+        job = ReviewAnalysisJob(db=db)
+        job.run(app_id=app_id, country=country)
+    finally:
+        db.close()
 
 
 @router.post("/collect/{app_id}", response_model=BaseResponse)
@@ -37,8 +47,7 @@ def collect_reviews(app_id: str, background_tasks: BackgroundTasks, country: str
     except ValueError:
         raise HTTPException(status_code=400, detail="App not found. Please check the app ID and country.")
 
-    job = ReviewAnalysisJob(db=db)
-    background_tasks.add_task(job.run, app_id=app_id, country=country)
+    background_tasks.add_task(run_review_analysis_job_wrapper, app_id=app_id, country=country)
     return {"status": "accepted", "message": f"Review analysis job for app {app_id} started in background."}
 
 
