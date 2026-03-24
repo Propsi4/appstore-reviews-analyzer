@@ -28,13 +28,18 @@ service = AppReviewsService()
 @router.post("/collect/{app_id}", response_model=BaseResponse)
 def collect_reviews(app_id: str, background_tasks: BackgroundTasks, country: str = "us", db: Session = Depends(get_db)):
     """Trigger a background job to collect and analyze reviews for a specific app."""
+    # Start a background task
+    if db.query(App).filter(App.external_id == app_id).first():
+        raise HTTPException(status_code=400, detail="App already exists.")
     try:
-        # Start a background task
-        job = ReviewAnalysisJob(db=db)
-        background_tasks.add_task(job.run, app_id=app_id, country=country)
-        return {"status": "accepted", "message": f"Review analysis job for app {app_id} started in background."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        review_service = AppReviewsService()
+        review_service.get_app_name(app_id, country)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="App not found. Please check the app ID and country.")
+
+    job = ReviewAnalysisJob(db=db)
+    background_tasks.add_task(job.run, app_id=app_id, country=country)
+    return {"status": "accepted", "message": f"Review analysis job for app {app_id} started in background."}
 
 
 @router.get("/parse-url", response_model=AppURLResponse)

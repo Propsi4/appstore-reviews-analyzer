@@ -66,7 +66,7 @@ class AppReviewsService(BaseModel):
             logger.info(f"Fetching app name for app_id={app_id}, country={country}")
             scraper = AppReviewsScrapper(app_id=app_id, country=country)
             return scraper.app_name
-        except Exception as e:
+        except ValueError as e:
             logger.error(f"Failed to fetch app name for app {app_id}: {e}")
             raise
 
