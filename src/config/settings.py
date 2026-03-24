@@ -50,7 +50,7 @@ class GeminiConfig(BaseSettings):
     """Gemini API settings."""
 
     api_key: str = Field(..., description="Gemini API key for analysis")
-    model: str = Field(default="gemini-3.1-flash-lite", description="Gemini model name")
+    model: str = Field(default="gemini-2.5-flash-lite", description="Gemini model name")
 
 
 class Settings(BaseSettings):
