@@ -40,7 +40,7 @@ def collect_reviews(app_id: str, background_tasks: BackgroundTasks, country: str
     """Trigger a background job to collect and analyze reviews for a specific app."""
     # Start a background task
     if db.query(App).filter(App.external_id == app_id).first():
-        raise HTTPException(status_code=400, detail="App already exists.")
+        return {"status": "done", "message": f"Review analysis job for app {app_id} already done."}
     try:
         review_service = AppReviewsService()
         app_name = review_service.get_app_name(app_id, country)
